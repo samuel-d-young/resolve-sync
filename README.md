@@ -131,3 +131,11 @@ agent/
     server.py         # FastAPI: localhost API + dashboard
   static/             # dashboard (HTML/CSS/JS)
 ```
+
+## License & code signing
+
+Resolve Sync is free and open source under the [MIT License](LICENSE).
+
+Windows releases are code-signed. Free code signing provided by
+[SignPath.io](https://signpath.io), certificate by the
+[SignPath Foundation](https://signpath.org).

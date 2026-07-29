@@ -1,0 +1,84 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        working-directory: agent
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-build.txt
+
+      - name: Run tests
+        working-directory: agent
+        shell: pwsh
+        run: |
+          $failed = 0
+          Get-ChildItem tests\*.py | ForEach-Object {
+            python $_.FullName
+            if ($LASTEXITCODE -ne 0) { $failed = 1 }
+          }
+          exit $failed
+
+      # Official builds bundle the app's Google OAuth client so users get
+      # one-click "Sign in with Google" (a desktop-app client secret is
+      # non-confidential by Google's own docs). Forks without the secret
+      # still build fine - Google sign-in just shows as not configured.
+      - name: Bundle Google client (official builds only)
+        if: ${{ github.event_name != 'pull_request' }}
+        working-directory: agent
+        shell: pwsh
+        env:
+          GOOGLE_CLIENT_JSON: ${{ secrets.GOOGLE_CLIENT_JSON }}
+        run: |
+          if ($env:GOOGLE_CLIENT_JSON) {
+            Set-Content -Path resolve_sync\google_client.json -Value $env:GOOGLE_CLIENT_JSON -Encoding utf8
+            Write-Host "Google client bundled."
+          } else {
+            Write-Host "No GOOGLE_CLIENT_JSON secret - building without a bundled client."
+          }
+
+      - name: Build Windows app
+        working-directory: agent
+        shell: cmd
+        env:
+          PYTHON: python
+        run: build-exe.bat
+
+      - name: Upload unsigned build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ResolveSync-Windows-unsigned
+          path: agent/dist/ResolveSync-Windows.zip
+          if-no-files-found: error
+
+      # --- Code signing (SignPath Foundation) --------------------------------
+      # Wired up once the SignPath Foundation application is approved:
+      # uncomment and fill in the organization id + project/policy slugs, and
+      # add SIGNPATH_API_TOKEN to the repository secrets.
+      #
+      # - name: Submit to SignPath for signing
+      #   if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+      #   uses: signpath/github-action-submit-signing-request@v1
+      #   with:
+      #     api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+      #     organization-id: "<signpath organization id>"
+      #     project-slug: "resolve-sync"
+      #     signing-policy-slug: "release-signing"
+      #     github-artifact-id: "ResolveSync-Windows-unsigned"
+      #     wait-for-completion: true
+      #     output-artifact-directory: signed

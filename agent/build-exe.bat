@@ -10,6 +10,10 @@ REM    Google" instead of visiting Google Cloud Console.
 
 cd /d "%~dp0"
 
+REM CI (or any environment without the .venv) can point PYTHON at another
+REM interpreter; locally the venv remains the default.
+if not defined PYTHON set "PYTHON=.venv\Scripts\python.exe"
+
 set "GOOGLE_ARG="
 if exist "resolve_sync\google_client.json" (
   set "GOOGLE_ARG=--add-data resolve_sync\google_client.json;resolve_sync"
@@ -18,7 +22,7 @@ if exist "resolve_sync\google_client.json" (
   echo No resolve_sync\google_client.json - users will each need their own Google client.
 )
 
-.venv\Scripts\python.exe -m PyInstaller ^
+"%PYTHON%" -m PyInstaller ^
   --noconfirm --clean --noconsole --onedir ^
   --name "Resolve Sync" ^
   --icon app.ico ^

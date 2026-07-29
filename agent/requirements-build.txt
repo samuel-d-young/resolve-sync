@@ -1,0 +1,8 @@
+# Everything needed on top of requirements.txt to build the Windows app.
+# (The desktop shell, tray icon, credential store, and PyInstaller itself.)
+pywebview>=6.2
+pystray>=0.19
+pillow>=10
+keyring>=25
+pywin32-ctypes>=0.2
+pyinstaller>=6.21

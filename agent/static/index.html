@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Resolve Sync</title>
+  <link rel="icon" type="image/png" sizes="32x32" href="/icon/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/icon/icon-16.png" />
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="app">
+
+  <!-- ------------------------------------------------------------ title -->
+  <div class="titlebar">
+    <div class="brand"><span class="logo">◑</span><span class="title">Resolve&nbsp;Sync</span></div>
+    <div class="crumbs"><span>Project Library</span><span>›</span><b id="crumbLib">—</b></div>
+    <span class="spacer"></span>
+    <button id="btnBackup" class="btn primary" disabled>Back up selected</button>
+    <button id="btnSettings" class="btn">Settings</button>
+  </div>
+
+  <div class="body">
+    <!-- --------------------------------------------------------- sidebar -->
+    <div class="sidebar">
+      <div class="side-head">Project Libraries</div>
+      <div class="libs" id="libs"></div>
+      <div class="side-foot">
+        <button id="btnWizard" class="btn sm" style="width:100%">Set up a library…</button>
+      </div>
+    </div>
+
+    <!-- ------------------------------------------------------------ main -->
+    <div class="main">
+      <div class="toolbar">
+        <div class="search"><input id="filter" type="text" placeholder="Search projects" /></div>
+        <button id="btnAll" class="btn sm">Select all</button>
+        <button id="btnNone" class="btn sm">Clear</button>
+        <button id="btnOpen" class="btn sm">Select open project</button>
+        <span class="spacer"></span>
+        <span class="muted" id="selInfo"></span>
+        <div class="viewtoggle">
+          <button id="viewList" class="active">List</button>
+          <button id="viewGrid">Thumbnails</button>
+        </div>
+      </div>
+
+      <div class="content" id="content">
+        <p class="muted" style="padding:16px">Loading projects…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------- status bar -->
+  <div class="statusbar">
+    <span class="dot" id="dot"></span><span id="statusText">Connecting…</span>
+    <span class="spacer"></span>
+    <span id="autoText"></span>
+    <span id="countText"></span>
+  </div>
+</div>
+
+<!-- --------------------------------------------------------- history panel -->
+<div id="panel" class="panel hidden">
+  <div class="panel-head"><span id="panelTitle">Versions</span>
+    <button class="x" id="panelClose">✕</button></div>
+  <div class="panel-body">
+    <div class="section" id="panelMeta"></div>
+    <div class="section">
+      <h3>Version history</h3>
+      <div id="versions"></div>
+    </div>
+    <div class="section hidden" id="relinkSection">
+      <h3>Media</h3>
+      <div id="relinkBody"></div>
+    </div>
+  </div>
+  <div class="panel-foot">
+    <input id="note" type="text" placeholder="Version note (optional)" style="flex:1" />
+    <button id="panelBackup" class="btn primary">Back up</button>
+  </div>
+</div>
+
+<!-- ---------------------------------------------------------- settings -->
+<div id="settings" class="scrim hidden">
+  <div class="dialog">
+    <div class="dialog-head"><h2>Settings</h2></div>
+    <div class="dialog-body">
+      <div class="section">
+        <h3>This computer</h3>
+        <label class="fld">Name shown on your versions
+          <input id="setAuthor" type="text" /></label>
+      </div>
+      <div class="section">
+        <h3>Where your footage lives</h3>
+        <label class="fld">One folder per line
+          <textarea id="setRoots" rows="3"></textarea></label>
+        <p class="hint warn">Don't use a Dropbox/Drive/OneDrive folder here — scanning one
+          can force your cloud service to download every file.</p>
+      </div>
+      <div class="section">
+        <h3>Automatic backup</h3>
+        <label style="display:flex;gap:9px;align-items:flex-start;color:var(--text);font-size:12.5px">
+          <input id="setAuto" type="checkbox" />
+          <span>Back up my chosen projects automatically after I save in Resolve</span>
+        </label>
+        <p class="hint" id="autoHint"></p>
+        <label class="fld" style="margin-top:10px">Check every
+          <select id="setInterval">
+            <option value="30">30 seconds</option>
+            <option value="90">90 seconds</option>
+            <option value="300">5 minutes</option>
+            <option value="900">15 minutes</option>
+          </select></label>
+      </div>
+      <div class="section">
+        <h3>Project Library</h3>
+        <div id="libSummary" class="muted" style="font-size:12px"></div>
+        <button id="btnWizard2" class="btn sm" style="margin-top:8px">Change library…</button>
+      </div>
+    </div>
+    <div class="dialog-foot">
+      <button id="setClose" class="btn">Close</button>
+      <button id="setSave" class="btn primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- ------------------------------------------------------------- wizard -->
+<div id="wizard" class="scrim hidden">
+  <div class="dialog">
+    <div class="dialog-head">
+      <h2 id="wizTitle">Set up Resolve Sync</h2>
+      <p id="wizSub">Only your project files are stored. Your footage never moves.</p>
+    </div>
+    <div class="dialog-body">
+      <div class="steps">
+        <span class="step active" data-step="1">1 · Check</span>
+        <span class="step" data-step="2">2 · Library</span>
+        <span class="step" data-step="3">3 · Footage</span>
+        <span class="step" data-step="4">4 · Finish</span>
+      </div>
+
+      <section class="wpane" data-pane="1">
+        <div id="checkList"><p class="muted">Checking…</p></div>
+      </section>
+
+      <section class="wpane hidden" data-pane="2">
+        <div id="providerList"></div>
+        <div id="providerExtra"></div>
+        <div id="googlePanel" class="hidden" style="margin-top:10px">
+          <div id="googleState" class="muted" style="font-size:12px;margin-bottom:8px">Checking…</div>
+          <button id="googleSignIn" class="btn">Sign in with Google</button>
+          <button id="googleSignOut" class="btn sm hidden">Sign out</button>
+          <details id="googleSetup" class="hidden" style="margin-top:10px">
+            <summary class="muted" style="font-size:12px;cursor:pointer">Set up Google access (one-off)</summary>
+            <p class="hint">Create an OAuth client at console.cloud.google.com → Credentials →
+              OAuth client ID → Web application, with this redirect URI:</p>
+            <code id="redirectUri" class="muted" style="display:block;font-size:11px;padding:6px;background:var(--well);margin:6px 0"></code>
+            <label class="fld">Client ID<input id="gClientId" type="text" /></label>
+            <label class="fld">Client secret<input id="gClientSecret" type="password" /></label>
+            <button id="googleSave" class="btn sm">Save</button>
+          </details>
+        </div>
+      </section>
+
+      <section class="wpane hidden" data-pane="3">
+        <p class="muted" style="font-size:12px;margin:0 0 10px">
+          Found by reading your existing Resolve projects. Tick the drives you use.</p>
+        <div id="mediaSuggestions"></div>
+        <label class="fld" style="margin-top:10px">Add another folder
+          <input id="extraRoot" type="text" placeholder="D:\More Footage" /></label>
+      </section>
+
+      <section class="wpane hidden" data-pane="4">
+        <div id="wizSummary"></div>
+        <label class="fld" style="margin-top:10px">What should we call this computer?
+          <input id="wizAuthor" type="text" /></label>
+      </section>
+    </div>
+    <div class="dialog-foot">
+      <button id="wizCancel" class="btn">Cancel</button>
+      <button id="wizBack" class="btn hidden">Back</button>
+      <button id="wizNext" class="btn primary">Continue</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="/app.js"></script>
+<script src="/wizard.js"></script>
+<script src="/google.js"></script>
+</body>
+</html>

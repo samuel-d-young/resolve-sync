@@ -704,11 +704,30 @@ def _pull_inner(req: PullRequest, store) -> dict:
 
 def _load_or_current(name: str):
     """Return project `name` as a loaded project, loading it if needed."""
-    pm = projects._pm()  # internal but fine within the package
+    pm = projects._pm()
     current = pm.GetCurrentProject()
     if current and current.GetName() == name:
         return current
-    pm.LoadProject(name)
+
+    matches = [
+        folder
+        for folder, project in projects._walk_projects_locked()
+        if project == name
+    ]
+    if len(matches) > 1:
+        raise ResolveUnavailable(
+            f"More than one project is called '{name}' (in: "
+            + ", ".join(m or "/" for m in matches)
+            + "). Rename one in Resolve so syncing can tell them apart."
+        )
+    if not matches:
+        raise ResolveUnavailable(f"Project '{name}' was not found in Resolve.")
+
+    projects._goto_folder_locked(matches[0])
+    ok = pm.LoadProject(name)
+    if not ok:
+        raise ResolveUnavailable(f"Could not load project '{name}'.")
+
     proj = pm.GetCurrentProject()
     if not proj or proj.GetName() != name:
         raise ResolveUnavailable(f"Could not load project '{name}'.")

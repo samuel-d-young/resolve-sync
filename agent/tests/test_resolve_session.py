@@ -23,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from resolve_sync import projects  # noqa: E402
+from resolve_sync import server  # noqa: E402
 from resolve_sync.autosync import AutoSync  # noqa: E402
 
 
@@ -83,6 +84,8 @@ class FakePM:
 
     def LoadProject(self, name):
         self.loads.append(name)
+        if name not in self.tree.get(self.cursor, {}):
+            return False
         self.current = name
         return True
 
@@ -151,6 +154,20 @@ def test_duplicate_project_names_are_refused_not_guessed():
         raise AssertionError("ambiguous project name was silently resolved")
     finally:
         out.unlink(missing_ok=True)
+
+
+def test_load_project_navigates_to_subfolder_before_loading():
+    """Project lookup must use its real Resolve folder, not the current cursor."""
+    pm = FakePM({
+        "": {"Some Other Project": b"ROOT"},
+        "Archive": {"Dawid": b"ARCHIVE"},
+    }, current="Some Other Project")
+    _install(pm)
+
+    proj = server._load_or_current("Dawid")
+    assert proj.GetName() == "Dawid"
+    assert pm.current == "Dawid"
+    assert pm.cursor == "Archive"
 
 
 def test_autosync_never_switches_the_editors_open_project():
